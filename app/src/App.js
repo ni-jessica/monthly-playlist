@@ -1,7 +1,6 @@
 import "./App.css";
 import { useState, useEffect } from "react";
 import { getTracks, createPlaylist } from "./endpoints";
-import { CLIENT_ID } from "./env.tsx";
 
 const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const RESPONSE_TYPE = "token";
@@ -114,7 +113,7 @@ function GetMonthly() {
               playlist <>&#x2728;</>
             </p>
             <a
-              href={`${AUTH_ENDPOINT}?show_dialog=true&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=${RESPONSE_TYPE}&scope=${SCOPE}`}
+              href={`${AUTH_ENDPOINT}?show_dialog=true&client_id=${process.env.REACT_APP_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=${RESPONSE_TYPE}&scope=${SCOPE}`}
             >
               <button className="py-10 px-16 my-8 bg-indigo-800 hover:bg-emerald-600 hover:scale-105 transition duration-500 border rounded-full text-2xl text-white">
                 Login using Spotify
