@@ -1,95 +1,62 @@
 import "./App.css";
-import { useState, useEffect} from "react";
+import { useState, useEffect } from "react";
+import { getTracks, createPlaylist } from "./endpoints";
 import { CLIENT_ID } from "./env.tsx";
 
+const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
+const RESPONSE_TYPE = "token";
+const REDIRECT_URI = "http://localhost:3000";
+const SCOPE =
+  "user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-recently-played user-top-read playlist-modify-private";
+
+const TopTracks = ({ topTracks, recommendedTracks }) => {
+  return (
+    <div>
+      You have great taste!
+      <div className="my-12 flex flex-row w-full gap-36">
+        <div>
+          Your top 20 tracks for this month were:
+          <ol className="list-decimal">
+            {topTracks.map((track) => (
+              <li className="text-left">{track}</li>
+            ))}
+          </ol>
+        </div>
+        <div>
+          <p>Based on your listening activity, check out...</p>
+          <p>These songs:</p>
+          <ol className="list-decimal">
+            {recommendedTracks.map((track) => (
+              <li className="text-left">{track}</li>
+            ))}
+          </ol>
+
+          <p>This album:</p>
+
+          <p>This artist:</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function GetMonthly() {
-  const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
-  const RESPONSE_TYPE = "token";
-  const REDIRECT_URI = "http://localhost:3000";
-  const SCOPE = 'user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-recently-played user-top-read playlist-modify-private';
-
-  let trackUris = [];
   const [accessToken, setAccessToken] = useState("");
-  const [userId, setUserId] = useState("");
   const [playlistId, setPlaylistId] = useState("");
-
-  async function fetchWebApi(endpoint, method, body) {
-    const res = await fetch(`https://api.spotify.com/${endpoint}`, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-      method,
-      body: JSON.stringify(body),
-    });
-    return await res.json();
-  }
-
-  async function getUserId() {
-    const id = (await fetchWebApi(`v1/me`, "GET")).id;
-    setUserId(id);
-  }
-
-  async function getTracks() {
-    // get the users top 20 tracks from the last 30 days
-    const tracks =  (await fetchWebApi(
-      `v1/me/top/tracks?time_range=short_term&limit=20`, 'GET'
-    )).items;
-
-    console.log("top 20 tracks: \n" +
-      tracks?.map(
-        ({name, artists}) =>
-          `${name} by ${artists.map(artist => artist.name).join(', ')}`
-      )
-    );
-
-    const ids = tracks?.map(track => track.id)
-    const uris = tracks?.map(track=> track.uri)
-
-    const seedIds = ids.slice(0, 5)
-    
-    // get 10 recommended tracks from the top 5
-    const recommended = (
-      await fetchWebApi(
-        `v1/recommendations?limit=10&seed_tracks=${seedIds.join(',')}`,
-        "GET"
-      )
-    ).tracks;
-
-    console.log( "reccomended tracks: \n" +
-      recommended?.map(
-        ({ name, artists }) =>
-          `${name} by ${artists.map((artist) => artist.name).join(", ")}`
-      )
-    );
-
-    const recommendedUris = recommended.map(track=>track.uri)
-    uris.push(recommendedUris)
-    trackUris = uris;
-  }
-
-  async function createPlaylist(tracksUri) {
-    console.log(tracksUri);
-    await fetchWebApi(`v1/users/${userId}/playlists`, "POST", {
-      name: `${getMonth()}`,
-      description: "",
-      public: false,
-    }).then((playlist) => {
-      fetchWebApi(
-        `v1/playlists/${playlist.id}/tracks?uris=${tracksUri.join(",")}`,
-        "POST"
-      );
-      setPlaylistId(playlist.id);
-      console.log(playlist.id)
-      return playlist;
-    });
-  }
+  // const [tracksUri, setTracksUri] = useState([]);
+  const [topTracks, setTopTracks] = useState([]);
+  const [recommendedTracks, setRecommendedTracks] = useState([]);
 
   async function generate() {
-    await getTracks();
-    createPlaylist(trackUris);
+    const tracksUri = await getTracks(
+      accessToken,
+      setTopTracks,
+      setRecommendedTracks
+    );
+    createPlaylist(tracksUri, accessToken, setPlaylistId);
   }
 
-  async function getToken() {
+  function getToken() {
     const hash = window.location.hash;
     let token = window.localStorage.getItem("token");
 
@@ -100,68 +67,82 @@ function GetMonthly() {
         .split("&")
         .find((elem) => elem.startsWith("access_token"))
         .split("=")[1];
+
       setAccessToken(token);
+      console.log(token);
       window.location.hash = "";
     }
   }
 
-  useEffect(() => {
-    getToken();
-
-    if (accessToken) {
-      getUserId();
-    }
-  }, [accessToken, userId]);
-
   const logout = () => {
     setAccessToken("");
+    setPlaylistId("");
   };
 
-  function getMonth() {
-    const month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-    const d = new Date();
-    return month[d.getMonth()];
-  }
+  useEffect(() => {
+    getToken();
+  }, [accessToken]);
 
   return (
     <div className="App">
-      <header className="App-header">
-        <div>
-          <h1>
-            Login with Spotify to create a playlist with your top songs for the
-            month!
-          </h1>
-          {!accessToken ? (
-            <a
-              href={`${AUTH_ENDPOINT}?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=${RESPONSE_TYPE}&scope=${SCOPE}`}
-            >
-              Login to Spotify
-            </a>
-          ) : (
-            <div className="flex flex-col justify-center items-center">
-                <button className= "bg-black p-6 my-8" onClick={generate}>
-                  Generate playlist
-                </button>
-                
-                <button className= "bg-black p-6 my-8" onClick={logout}>logout</button>
-            </div>
-          )}
+      <div className="my-32 px-[10%] text-center justify-center font-mono">
+        <h1 className="text-7xl font-extrabold">
+          Spotify Monthly <br></br>
+          Playlist Generator
+        </h1>
 
-          {playlistId ? (
-            <iframe
-              title="Created playlist"
-              src={`https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`}
-              width="100%"
-              height="100%"
-              style={{ minHeight: '360px' }}
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
+        {!accessToken ? (
+          <div>
+            <p className="my-12 text-4xl font-extrabold">
+              Login to see your monthly recap, get some recommendations, and
+              create a playlist :{`)`}
+            </p>
+            <a
+              href={`${AUTH_ENDPOINT}?show_dialog=true&client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=${RESPONSE_TYPE}&scope=${SCOPE}`}
+            >
+              <button className="py-10 px-16 my-8 bg-green-600 rounded-3xl text-2xl text-white">
+                Login using Spotify
+              </button>
+            </a>
+          </div>
+        ) : (
+          <div className="my-16 flex flex-col justify-center items-center">
+            <TopTracks
+              topTracks={topTracks}
+              recommendedTracks={recommendedTracks}
             />
-          ) : (
-            <div></div>
-          )}
-        </div>
-      </header>
+            <p className="">
+              Would you like to create a playlist based off of your top and
+              recommended songs?
+            </p>
+            <button
+              className="my-4 py-10 w-2/3 bg-green-600 rounded-3xl text-2xl text-white"
+              onClick={generate}
+            >
+              Generate playlist!
+            </button>
+            {playlistId && (
+              <iframe
+                className="my-10"
+                title="Created playlist"
+                src={`https://open.spotify.com/embed/playlist/${playlistId}?utm_source=generator&theme=0`}
+                width="100%"
+                height="100%"
+                style={{ minHeight: "360px" }}
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+              />
+            )}
+
+            <button
+              className="mt-16 text-xl border-none text-gray-400 hover:text-green-500 underline"
+              onClick={logout}
+            >
+              Logout
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
