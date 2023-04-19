@@ -26,8 +26,6 @@ export async function getTracks(accessToken, setTopTracks, setRecommendedTracks)
     const ids = tracks?.map(track => track.id)
     const uris = tracks?.map(track => track.uri)
 
-    console.log(ids)
-
     const seedIds = ids.slice(0, 5)
     const recommendedTracks = []
     // get 10 recommended tracks from the top 5
@@ -46,8 +44,8 @@ export async function getTracks(accessToken, setTopTracks, setRecommendedTracks)
     setRecommendedTracks(recommendedTracks)
 
     const recommendedUris = recommended.map(track=>track.uri)
-    uris.concat(recommendedUris)
-    return uris;
+    const allUris = uris.concat(recommendedUris)
+    return allUris;
   }
 
 export async function getUserId(accessToken) {
