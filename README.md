@@ -4,3 +4,4 @@ This app authenticates with Spotify and compiles user data to get your top 20 mo
 
 Created with React, Javascript, HTML, CSS, Tailwind, and the Spotify for Developers API.
 
+currently working on making access generic (only working for personal account) and deploying to netlify
