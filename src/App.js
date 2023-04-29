@@ -6,7 +6,7 @@ const AUTH_ENDPOINT = "https://accounts.spotify.com/authorize";
 const RESPONSE_TYPE = "token";
 const REDIRECT_URI = "http://localhost:3000";
 const SCOPE =
-  "user-modify-playback-state user-read-recently-played user-top-read playlist-modify-private";
+  "user-read-playback-state user-library-read user-read-private user-modify-playback-state user-read-recently-played user-top-read playlist-modify-private";
 
 const Tracks = ({ topTracks, recommendedTracks }) => {
   return (
@@ -78,7 +78,6 @@ function GetMonthly() {
         .split("=")[1];
 
       setAccessToken(token);
-      console.log(token);
       window.location.hash = "";
     }
   }

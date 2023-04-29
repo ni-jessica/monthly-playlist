@@ -11,6 +11,8 @@ export async function fetchWebApi(endpoint, method, body, accessToken) {
 
 export async function getTracks(accessToken, setTopTracks, setRecommendedTracks) {
     const topTracks = [];
+    const id = await getUserId(accessToken)
+    console.log(id)
     // get the users top 20 tracks from the last 30 days
     const tracks =  (await fetchWebApi(
       `v1/me/top/tracks?time_range=short_term&limit=20`, 'GET', undefined, accessToken
